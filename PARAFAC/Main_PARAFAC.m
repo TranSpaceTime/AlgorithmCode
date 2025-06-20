@@ -1,7 +1,9 @@
 %%%%%%%%%%%%%%%%%%%%%%%
 % 基于PAFARAC模型进行DOA估计
+% DOA estimation based on PAFARAC model 
 % 解释：https://blog.csdn.net/qq_63978316/article/details/146709129?spm=1011.2415.3001.5331
 %%%%%%%%%%%%%%%%%%%%%%%
+
 clf;clc; clear; close all;
 
 %% 参数设置
