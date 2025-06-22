@@ -1,6 +1,12 @@
+%%%%%%%%%%%%%%%%%%%%%%%
+% 基于 PAFARAC 模型进行 DOA 估计 
+% DOA estimation based on PAFARAC model 
+% Reference:https://blog.csdn.net/qq_63978316/article/details/146709129?spm=1011.2415.3001.5331
+%%%%%%%%%%%%%%%%%%%%%%%
+
 clf;clc; clear; close all;
 
-%% 参数设置
+%% 参数设置 Parameter settings
 M = 6;           % x轴阵元个数
 N = 5;           % y轴阵元个数
 K = 512;        % 快拍数
@@ -21,7 +27,7 @@ dx = lambda / 2;  % x轴阵元间距
 dy = lambda / 2;  % y轴阵元间距
 num_signals = length(fines); % 信号数目
 
-%% 生成信号
+%% 生成信号 Generate source signals
 t = (0:K-1)/fs; % 时间向量
 S = zeros(num_signals, K);
 for k = 1:num_signals
@@ -29,7 +35,7 @@ for k = 1:num_signals
     S(k,:) = A_k * exp(1j*2*pi*signal_f(k)*t); % 载波调制
 end
 
-%% 构造阵列流型
+%% 构造阵列流型 Build array manifold
 A = zeros(M, num_signals);
 B = zeros(N, num_signals);
 for k = 1:num_signals
@@ -44,7 +50,7 @@ for k = 1:num_signals
     B(:,k) = exp(-1j*2*pi*n*v); % y方向导向矢量
 end
 
-%% 构造接收张量
+%% 构造接收张量 Construct received data tensor
 X = tensor(zeros(M,N,K));
 noise = (randn(M,N,K) + 1j*randn(M,N,K)) * sqrt(Pn/2);
 
@@ -53,15 +59,15 @@ for k = 1:num_signals
     X = X + tensor(component);
 end
 X = X + tensor(noise); 
-X_normalized = X / norm(X); % 张量归一化
+X_normalized = X / norm(X); % 张量归一化 tensor normalisation
 
 %% 稳健PARAFAC分解
 R = num_signals; % 分解秩
 options = struct;
-options.init = 'nvecs';  % 使用nvecs初始化
-options.printitn = 1;    % 显示迭代过程
-options.tol = 1e-4;      % 设置收敛容差
-options.maxiters = 150;  % 增加最大迭代次数
+options.init     = 'nvecs';  % nvecs 初始化 / n‑vecs initialisation
+options.printitn = 1;        % 显示迭代 / display iterations
+options.tol      = 1e-4;     % 收敛阈值 / convergence tolerance
+options.maxiters = 150;      % 最大迭代次数 / maximum iterations
 
 [Factors, ~] = cp_als(X_normalized, R, options);
 
@@ -71,13 +77,13 @@ B_est = Factors{2};
 %% 参数估计
 estimated_angles = zeros(num_signals, 2);
 for d = 1:R
-    % x方向估计
+    % x方向估计 x‑direction
     a = A_est(:,d);
     phase_x = unwrap(angle(a));
     u_est = -(phase_x(2:end) - phase_x(1:end-1))/(2*pi*(dx/lambda));
     u_est_avg = mean(u_est);
     
-    % y方向估计
+    % y方向估计 y‑direction
     b = B_est(:,d);
     phase_y = unwrap(angle(b));
     v_est = -(phase_y(2:end) - phase_y(1:end-1))/(2*pi*(dy/lambda));
@@ -90,7 +96,7 @@ for d = 1:R
     estimated_angles(d,:) = [phi_est, theta_est];
 end
 
-%% 二维可视化
+%% 二维可视化 2‑D visualisation
 figure(10);
 
 % 真实位置三维散点图
@@ -102,7 +108,7 @@ title('信号分布');
 axis([0,90,0,90]);
 grid on; 
 
-%% 性能评估
+%% 性能评估 Performance evaluation
 RMSE_phi = sqrt(mean((fines - estimated_angles(:,1)').^2));
 RMSE_theta = sqrt(mean((thetas - estimated_angles(:,2)').^2));
 disp(['方位角RMSE: ', num2str(RMSE_phi), ' 度']);
